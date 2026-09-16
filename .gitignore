@@ -1,4 +1,19 @@
-venv/
+# Variáveis de ambiente (contém credenciais locais)
 .env
+
+# Ambiente virtual Python
+venv/
+env/
+.venv/
+
+# Cache/bytecode Python
 __pycache__/
 *.pyc
+*.pyo
+
+# Editor
+.vscode/
+.idea/
+
+# Sistema operacional
+.DS_Store
