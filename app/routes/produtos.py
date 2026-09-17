@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.schemas.produto import ProdutoCreate, ProdutoResponse, ProdutoUpdate
 from app.services import produto_service
+from app.services.exceptions import EntidadeNaoEncontrada, ErroNegocio
 
 router = APIRouter(prefix="/produtos", tags=["Produtos"])
 
@@ -13,11 +14,15 @@ router = APIRouter(prefix="/produtos", tags=["Produtos"])
 def criar_produto(dados: ProdutoCreate, db: Session = Depends(get_db)):
     try:
         return produto_service.criar_produto(db, dados)
+    except EntidadeNaoEncontrada as erro:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)
+    except ErroNegocio as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=erro.mensagem)
     except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Não foi possível salvar o produto. Verifique se a categoria informada existe.",
+            detail="Não foi possível salvar o produto.",
         )
 
 
@@ -42,11 +47,15 @@ def atualizar_produto(
 ):
     try:
         produto = produto_service.atualizar_produto(db, produto_id, dados)
+    except EntidadeNaoEncontrada as erro:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)
+    except ErroNegocio as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=erro.mensagem)
     except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Não foi possível atualizar o produto. Verifique se a categoria informada existe.",
+            detail="Não foi possível atualizar o produto.",
         )
     if produto is None:
         raise HTTPException(

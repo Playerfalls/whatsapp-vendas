@@ -10,20 +10,21 @@ class Cliente(Base):
     """
     Representa um cliente identificado pelo WhatsApp.
 
-    `telefone` é único e é o identificador principal do cliente no fluxo
-    de atendimento. Regra de negócio importante (a ser aplicada pela
-    aplicação, não pelo banco): o telefone deve ser normalizado para um
-    formato único (ex: apenas dígitos, com DDI/DDD) ANTES de ser
-    persistido, para que o mesmo número não seja cadastrado em formatos
-    diferentes. Essa normalização será implementada na camada de
-    services, que ainda não existe nesta fase.
+    `telefone` é o identificador principal do cliente no fluxo de
+    atendimento. A unicidade do telefone é garantida na camada de
+    service (app/services/cliente_service.py), considerando apenas
+    clientes ATIVOS — por isso não há `unique=True` no banco: um
+    telefone pode se repetir entre um cliente inativo (soft delete) e um
+    novo cliente ativo, mas nunca entre dois clientes ativos ao mesmo
+    tempo. A normalização (mantendo apenas dígitos) também é feita na
+    camada de service, antes da persistência.
     """
 
     __tablename__ = "clientes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     nome: Mapped[str] = mapped_column(String(150), nullable=False)
-    telefone: Mapped[str] = mapped_column(String(20), nullable=False, unique=True)
+    telefone: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     data_cadastro: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )

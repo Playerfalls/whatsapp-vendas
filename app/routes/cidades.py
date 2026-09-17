@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.schemas.cidade import CidadeCreate, CidadeResponse, CidadeUpdate
 from app.services import cidade_service
+from app.services.exceptions import ConflitoDados, ErroNegocio
 
 router = APIRouter(prefix="/cidades", tags=["Cidades"])
 
@@ -13,6 +14,10 @@ router = APIRouter(prefix="/cidades", tags=["Cidades"])
 def criar_cidade(dados: CidadeCreate, db: Session = Depends(get_db)):
     try:
         return cidade_service.criar_cidade(db, dados)
+    except ConflitoDados as erro:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=erro.mensagem)
+    except ErroNegocio as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=erro.mensagem)
     except IntegrityError:
         db.rollback()
         raise HTTPException(
@@ -38,7 +43,12 @@ def obter_cidade(cidade_id: int, db: Session = Depends(get_db)):
 
 @router.patch("/{cidade_id}", response_model=CidadeResponse)
 def atualizar_cidade(cidade_id: int, dados: CidadeUpdate, db: Session = Depends(get_db)):
-    cidade = cidade_service.atualizar_cidade(db, cidade_id, dados)
+    try:
+        cidade = cidade_service.atualizar_cidade(db, cidade_id, dados)
+    except ConflitoDados as erro:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=erro.mensagem)
+    except ErroNegocio as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=erro.mensagem)
     if cidade is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Cidade não encontrada."

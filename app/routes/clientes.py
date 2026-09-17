@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.schemas.cliente import ClienteCreate, ClienteResponse, ClienteUpdate
 from app.services import cliente_service
+from app.services.exceptions import ConflitoDados, EntidadeNaoEncontrada, ErroNegocio
 
 router = APIRouter(prefix="/clientes", tags=["Clientes"])
 
@@ -13,11 +14,17 @@ router = APIRouter(prefix="/clientes", tags=["Clientes"])
 def criar_cliente(dados: ClienteCreate, db: Session = Depends(get_db)):
     try:
         return cliente_service.criar_cliente(db, dados)
+    except EntidadeNaoEncontrada as erro:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)
+    except ConflitoDados as erro:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=erro.mensagem)
+    except ErroNegocio as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=erro.mensagem)
     except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Já existe um cliente cadastrado com esse telefone.",
+            detail="Não foi possível salvar o cliente.",
         )
 
 
@@ -42,11 +49,17 @@ def atualizar_cliente(
 ):
     try:
         cliente = cliente_service.atualizar_cliente(db, cliente_id, dados)
+    except EntidadeNaoEncontrada as erro:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)
+    except ConflitoDados as erro:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=erro.mensagem)
+    except ErroNegocio as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=erro.mensagem)
     except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Já existe um cliente cadastrado com esse telefone.",
+            detail="Não foi possível atualizar o cliente.",
         )
     if cliente is None:
         raise HTTPException(

@@ -49,6 +49,17 @@ O projeto será evoluído gradualmente, adicionando as funcionalidades necessár
 * [x] Validação da inicialização da aplicação
 * [x] Documentação automática via Swagger/OpenAPI
 
+### Fase 4 — Regras de negócio
+- Validações de clientes, endereços, cidades, bairros, categorias e produtos
+- Normalização e validação de telefones
+- Controle de duplicidade entre registros ativos
+- Soft delete mantido
+- Validação de relacionamentos entre entidades
+- Validação de preços, estoque e taxas de entrega
+- Tratamento de erros de negócio com respostas HTTP apropriadas
+- Migration para permitir reutilização de telefone após desativação do cliente
+- Testes funcionais dos principais cenários de validação
+
 ### Próximas etapas
 
 As próximas fases serão responsáveis pela implementação gradual das regras de negócio, endpoints da API, serviços e demais funcionalidades do sistema.

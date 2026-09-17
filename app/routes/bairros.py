@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.schemas.bairro import BairroCreate, BairroResponse, BairroUpdate
 from app.services import bairro_service
+from app.services.exceptions import ConflitoDados, EntidadeNaoEncontrada, ErroNegocio
 
 router = APIRouter(prefix="/bairros", tags=["Bairros"])
 
@@ -13,11 +14,17 @@ router = APIRouter(prefix="/bairros", tags=["Bairros"])
 def criar_bairro(dados: BairroCreate, db: Session = Depends(get_db)):
     try:
         return bairro_service.criar_bairro(db, dados)
+    except EntidadeNaoEncontrada as erro:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)
+    except ConflitoDados as erro:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=erro.mensagem)
+    except ErroNegocio as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=erro.mensagem)
     except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Não foi possível salvar o bairro. Verifique se a cidade informada existe.",
+            detail="Não foi possível salvar o bairro.",
         )
 
 
@@ -40,11 +47,17 @@ def obter_bairro(bairro_id: int, db: Session = Depends(get_db)):
 def atualizar_bairro(bairro_id: int, dados: BairroUpdate, db: Session = Depends(get_db)):
     try:
         bairro = bairro_service.atualizar_bairro(db, bairro_id, dados)
+    except EntidadeNaoEncontrada as erro:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)
+    except ConflitoDados as erro:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=erro.mensagem)
+    except ErroNegocio as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=erro.mensagem)
     except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Não foi possível atualizar o bairro. Verifique se a cidade informada existe.",
+            detail="Não foi possível atualizar o bairro.",
         )
     if bairro is None:
         raise HTTPException(

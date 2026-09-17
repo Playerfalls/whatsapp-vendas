@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.schemas.categoria import CategoriaCreate, CategoriaResponse, CategoriaUpdate
 from app.services import categoria_service
+from app.services.exceptions import ConflitoDados, ErroNegocio
 
 router = APIRouter(prefix="/categorias", tags=["Categorias"])
 
@@ -13,6 +14,10 @@ router = APIRouter(prefix="/categorias", tags=["Categorias"])
 def criar_categoria(dados: CategoriaCreate, db: Session = Depends(get_db)):
     try:
         return categoria_service.criar_categoria(db, dados)
+    except ConflitoDados as erro:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=erro.mensagem)
+    except ErroNegocio as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=erro.mensagem)
     except IntegrityError:
         db.rollback()
         raise HTTPException(
@@ -40,7 +45,12 @@ def obter_categoria(categoria_id: int, db: Session = Depends(get_db)):
 def atualizar_categoria(
     categoria_id: int, dados: CategoriaUpdate, db: Session = Depends(get_db)
 ):
-    categoria = categoria_service.atualizar_categoria(db, categoria_id, dados)
+    try:
+        categoria = categoria_service.atualizar_categoria(db, categoria_id, dados)
+    except ConflitoDados as erro:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=erro.mensagem)
+    except ErroNegocio as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=erro.mensagem)
     if categoria is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Categoria não encontrada."

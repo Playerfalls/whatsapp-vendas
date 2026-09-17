@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.schemas.endereco import EnderecoCreate, EnderecoResponse, EnderecoUpdate
 from app.services import endereco_service
+from app.services.exceptions import EntidadeNaoEncontrada, ErroNegocio
 
 router = APIRouter(prefix="/enderecos", tags=["Endereços"])
 
@@ -13,14 +14,15 @@ router = APIRouter(prefix="/enderecos", tags=["Endereços"])
 def criar_endereco(dados: EnderecoCreate, db: Session = Depends(get_db)):
     try:
         return endereco_service.criar_endereco(db, dados)
+    except EntidadeNaoEncontrada as erro:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)
+    except ErroNegocio as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=erro.mensagem)
     except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Não foi possível salvar o endereço. Verifique se o "
-                "cliente e o bairro informados existem."
-            ),
+            detail="Não foi possível salvar o endereço.",
         )
 
 
@@ -45,14 +47,15 @@ def atualizar_endereco(
 ):
     try:
         endereco = endereco_service.atualizar_endereco(db, endereco_id, dados)
+    except EntidadeNaoEncontrada as erro:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)
+    except ErroNegocio as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=erro.mensagem)
     except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Não foi possível atualizar o endereço. Verifique se o "
-                "cliente e o bairro informados existem."
-            ),
+            detail="Não foi possível atualizar o endereço.",
         )
     if endereco is None:
         raise HTTPException(
