@@ -4,3 +4,4 @@ sqlalchemy
 alembic
 pymysql
 pydantic-settings
+pytest
