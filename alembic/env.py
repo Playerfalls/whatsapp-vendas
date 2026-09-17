@@ -9,6 +9,10 @@ from alembic import context
 # partir do .env, em vez de deixá-la fixa (e versionada) no alembic.ini.
 from app.config import settings
 
+# Importa todos os models (via app/models/__init__.py) para que fiquem
+# registrados em Base.metadata antes de ser usado abaixo.
+from app.models import Base
+
 # Objeto de configuração do Alembic, que dá acesso aos valores do alembic.ini
 config = context.config
 
@@ -21,10 +25,8 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # target_metadata é usado pelo Alembic para detectar mudanças
-# automaticamente (autogenerate). Permanece None nesta fase, pois ainda
-# não existem models. Será definido no início da Fase 1, importando o
-# Base declarativo dos models (ex: target_metadata = Base.metadata).
-target_metadata = None
+# automaticamente (autogenerate) em revisões futuras.
+target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
