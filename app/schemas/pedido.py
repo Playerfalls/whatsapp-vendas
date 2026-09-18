@@ -129,3 +129,25 @@ class PedidoDetalhadoResponse(BaseModel):
     pagamento: PagamentoResponse
 
     model_config = ConfigDict(from_attributes=True)
+
+class PedidoResumoResponse(BaseModel):
+    """
+    Schema de saída para a listagem operacional de pedidos
+    (GET /pedidos).
+
+    Contém somente os dados necessários para exibição da lista/painel.
+    Informações completas de entrega, itens e pagamento ficam nos
+    endpoints específicos do pedido.
+    """
+
+    id: int
+    cliente_id: int
+    endereco_id: int | None = None
+    bairro_entrega_nome: str
+    cidade_entrega_nome: str
+    valor_total: Decimal
+    status: StatusPedido
+    data_criacao: datetime
+    data_atualizacao: datetime
+
+    model_config = ConfigDict(from_attributes=True)

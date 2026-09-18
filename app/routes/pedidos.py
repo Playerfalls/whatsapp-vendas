@@ -8,6 +8,7 @@ from app.schemas.pedido import (
     PedidoCreate,
     PedidoDetalhadoResponse,
     PedidoResponse,
+    PedidoResumoResponse,
     PedidoStatusUpdate,
 )
 from app.services import pedido_service
@@ -38,7 +39,7 @@ def criar_pedido(dados: PedidoCreate, db: Session = Depends(get_db)):
         )
 
 
-@router.get("", response_model=list[PedidoResponse])
+@router.get("", response_model=list[PedidoResumoResponse])
 def listar_pedidos(
     skip: int = 0,
     limit: int = 100,
