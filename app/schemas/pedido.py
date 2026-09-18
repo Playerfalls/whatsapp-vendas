@@ -80,3 +80,14 @@ class PedidoResponse(PedidoBase):
     data_atualizacao: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PedidoStatusUpdate(BaseModel):
+    """
+    Schema de entrada dedicado à alteração de status de um pedido
+    (PATCH /pedidos/{pedido_id}/status). Contém somente o novo status -
+    nenhum outro campo do pedido (id, cliente_id, endereco_id,
+    valor_total, datas etc.) pode ser alterado por esta via.
+    """
+
+    status: StatusPedido

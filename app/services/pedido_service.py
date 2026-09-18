@@ -135,3 +135,30 @@ def listar_pedidos(db: Session, skip: int = 0, limit: int = 100) -> list[Pedido]
 
 def obter_pedido(db: Session, pedido_id: int) -> Pedido | None:
     return db.get(Pedido, pedido_id)
+
+
+def atualizar_status_pedido(
+    db: Session, pedido_id: int, novo_status: StatusPedido
+) -> Pedido:
+    """
+    Altera o status de um pedido e registra a mudança em
+    HistoricoStatusPedido, na mesma transação.
+    """
+    pedido = db.get(Pedido, pedido_id)
+    if pedido is None:
+        raise EntidadeNaoEncontrada("Pedido não encontrado.")
+
+    status_anterior = pedido.status
+    pedido.status = novo_status
+
+    db.add(
+        HistoricoStatusPedido(
+            pedido_id=pedido.id,
+            status_anterior=status_anterior,
+            status_novo=novo_status,
+        )
+    )
+
+    db.commit()
+    db.refresh(pedido)
+    return pedido

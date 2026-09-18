@@ -3,7 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.schemas.pedido import PedidoCreate, PedidoResponse
+from app.schemas.pedido import PedidoCreate, PedidoResponse, PedidoStatusUpdate
 from app.services import pedido_service
 from app.services.exceptions import EntidadeNaoEncontrada, ErroNegocio
 
@@ -44,3 +44,20 @@ def obter_pedido(pedido_id: int, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado."
         )
     return pedido
+
+
+@router.patch("/{pedido_id}/status", response_model=PedidoResponse)
+def atualizar_status_pedido(
+    pedido_id: int, dados: PedidoStatusUpdate, db: Session = Depends(get_db)
+):
+    """
+    Altera o status do pedido e registra a mudança em
+    HistoricoStatusPedido (feito por `pedido_service.atualizar_status_pedido`,
+    na mesma transação).
+    """
+    try:
+        return pedido_service.atualizar_status_pedido(db, pedido_id, dados.status)
+    except EntidadeNaoEncontrada as erro:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)
+    except ErroNegocio as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=erro.mensagem)
