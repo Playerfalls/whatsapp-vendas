@@ -158,3 +158,12 @@ class PedidoResumoResponse(BaseModel):
     data_atualizacao: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class PedidoContadoresResponse(BaseModel):
+    novos: int
+    preparando: int
+    prontos: int
+    em_rota: int
+    finalizados: int
+    cancelados: int
+    retornados: int

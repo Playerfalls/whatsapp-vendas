@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 
 from sqlalchemy.exc import IntegrityError
@@ -286,3 +287,45 @@ def marcar_pedido_retornado(db: Session, pedido_id: int) -> Pedido:
     era o status anterior - essa regra fica para uma etapa futura.
     """
     return atualizar_status_pedido(db, pedido_id, StatusPedido.RETORNADO)
+
+
+def contar_pedidos(
+    db: Session,
+    data_inicio: date | None = None,
+    data_fim: date | None = None,
+) -> dict[str, int]:
+    query = db.query(Pedido)
+
+    if data_inicio is not None:
+        query = query.filter(Pedido.data_criacao >= data_inicio)
+
+    if data_fim is not None:
+        query = query.filter(Pedido.data_criacao < data_fim)
+
+    pedidos = query.all()
+
+    contadores = {
+        "novos": 0,
+        "preparando": 0,
+        "prontos": 0,
+        "em_rota": 0,
+        "finalizados": 0,
+        "cancelados": 0,
+        "retornados": 0,
+    }
+
+    mapa_status = {
+        StatusPedido.NOVO: "novos",
+        StatusPedido.PREPARANDO: "preparando",
+        StatusPedido.PRONTO: "prontos",
+        StatusPedido.EM_ROTA: "em_rota",
+        StatusPedido.FINALIZADO: "finalizados",
+        StatusPedido.CANCELADO: "cancelados",
+        StatusPedido.RETORNADO: "retornados",
+    }
+
+    for pedido in pedidos:
+        chave = mapa_status[pedido.status]
+        contadores[chave] += 1
+
+    return contadores

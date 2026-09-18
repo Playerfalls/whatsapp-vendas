@@ -1,3 +1,4 @@
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -5,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.schemas.historico_status_pedido import HistoricoStatusPedidoResponse
 from app.schemas.pedido import (
+    PedidoContadoresResponse,
     PedidoCreate,
     PedidoDetalhadoResponse,
     PedidoResponse,
@@ -17,6 +19,17 @@ from app.services.exceptions import EntidadeNaoEncontrada, ErroNegocio
 
 router = APIRouter(prefix="/pedidos", tags=["Pedidos"])
 
+@router.get("/contadores", response_model=PedidoContadoresResponse)
+def contar_pedidos(
+    data_inicio: date | None = None,
+    data_fim: date | None = None,
+    db: Session = Depends(get_db),
+):
+    return pedido_service.contar_pedidos(
+        db,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+    )
 
 @router.post("", response_model=PedidoResponse, status_code=status.HTTP_201_CREATED)
 def criar_pedido(dados: PedidoCreate, db: Session = Depends(get_db)):
