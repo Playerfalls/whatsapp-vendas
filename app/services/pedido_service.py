@@ -127,3 +127,11 @@ def criar_pedido(db: Session, dados: PedidoCreate) -> Pedido:
 
     db.refresh(pedido)
     return pedido
+
+
+def listar_pedidos(db: Session, skip: int = 0, limit: int = 100) -> list[Pedido]:
+    return db.query(Pedido).offset(skip).limit(limit).all()
+
+
+def obter_pedido(db: Session, pedido_id: int) -> Pedido | None:
+    return db.get(Pedido, pedido_id)
