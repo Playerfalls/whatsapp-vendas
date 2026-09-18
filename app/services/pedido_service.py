@@ -240,14 +240,49 @@ def obter_pedido_detalhado(db: Session, pedido_id: int) -> Pedido:
 
 def cancelar_pedido(db: Session, pedido_id: int) -> Pedido:
     """
-    Cancela um pedido (status -> CANCELADO), registrando a mudança em
-    HistoricoStatusPedido. Reaproveita atualizar_status_pedido, sem
-    duplicar a lógica de alteração de status/histórico. Não valida se o
-    status atual permite cancelamento - essa regra fica para uma etapa
-    futura.
+    Cancela um pedido e, se houver pagamento pendente, também o cancela.
+    Pedido, pagamento e histórico são persistidos na mesma transação.
     """
-    return atualizar_status_pedido(db, pedido_id, StatusPedido.CANCELADO)
+    pedido = db.get(Pedido, pedido_id)
 
+    if pedido is None:
+        raise EntidadeNaoEncontrada("Pedido não encontrado.")
+
+    transicoes_permitidas = {
+        StatusPedido.NOVO,
+        StatusPedido.PREPARANDO,
+        StatusPedido.PRONTO,
+    }
+
+    if pedido.status not in transicoes_permitidas:
+        raise ErroNegocio(
+            f"Não é permitido cancelar um pedido com status "
+            f"{pedido.status.value}."
+        )
+
+    status_anterior = pedido.status
+    pedido.status = StatusPedido.CANCELADO
+
+    db.add(
+        HistoricoStatusPedido(
+            pedido_id=pedido.id,
+            status_anterior=status_anterior,
+            status_novo=StatusPedido.CANCELADO,
+        )
+    )
+
+    pagamento = pedido.pagamento
+
+    if (
+        pagamento is not None
+        and pagamento.status_pagamento == StatusPagamento.PENDENTE
+    ):
+        pagamento.status_pagamento = StatusPagamento.CANCELADO
+
+    db.commit()
+    db.refresh(pedido)
+
+    return pedido
 
 def marcar_pedido_pronto(db: Session, pedido_id: int) -> Pedido:
     """
