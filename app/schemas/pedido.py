@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from pydantic import AliasPath, BaseModel, ConfigDict, Field
 
-from app.models.enums import FormaPagamento, StatusPedido
+from app.models.enums import FormaPagamento, StatusPagamento, StatusPedido
 from app.schemas.item_pedido import ItemPedidoCreate, ItemPedidoResponse
 from app.schemas.pagamento import PagamentoResponse
 
@@ -147,6 +147,12 @@ class PedidoResumoResponse(BaseModel):
     bairro_entrega_nome: str
     cidade_entrega_nome: str
     valor_total: Decimal
+    forma_pagamento: FormaPagamento = Field(
+        validation_alias=AliasPath("pagamento", "forma_pagamento")
+)
+    status_pagamento: StatusPagamento = Field(
+        validation_alias=AliasPath("pagamento", "status_pagamento")
+)
     status: StatusPedido
     data_criacao: datetime
     data_atualizacao: datetime

@@ -135,7 +135,10 @@ def listar_pedidos(
     limit: int = 100,
     status_pedido: StatusPedido | None = None,
 ) -> list[Pedido]:
-    query = db.query(Pedido).options(joinedload(Pedido.cliente))
+    query = db.query(Pedido).options(
+    joinedload(Pedido.cliente),
+    joinedload(Pedido.pagamento),
+)
 
     if status_pedido is not None:
         query = query.filter(Pedido.status == status_pedido)
