@@ -3,6 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
+from app.schemas.historico_status_pedido import HistoricoStatusPedidoResponse
 from app.schemas.pedido import PedidoCreate, PedidoResponse, PedidoStatusUpdate
 from app.services import pedido_service
 from app.services.exceptions import EntidadeNaoEncontrada, ErroNegocio
@@ -61,3 +62,13 @@ def atualizar_status_pedido(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)
     except ErroNegocio as erro:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=erro.mensagem)
+
+
+@router.get(
+    "/{pedido_id}/historico", response_model=list[HistoricoStatusPedidoResponse]
+)
+def obter_historico_pedido(pedido_id: int, db: Session = Depends(get_db)):
+    try:
+        return pedido_service.obter_historico_status_pedido(db, pedido_id)
+    except EntidadeNaoEncontrada as erro:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)

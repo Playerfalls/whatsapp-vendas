@@ -162,3 +162,19 @@ def atualizar_status_pedido(
     db.commit()
     db.refresh(pedido)
     return pedido
+
+
+def obter_historico_status_pedido(
+    db: Session, pedido_id: int
+) -> list[HistoricoStatusPedido]:
+    """Retorna o histórico de status de um pedido, em ordem cronológica."""
+    pedido = db.get(Pedido, pedido_id)
+    if pedido is None:
+        raise EntidadeNaoEncontrada("Pedido não encontrado.")
+
+    return (
+        db.query(HistoricoStatusPedido)
+        .filter(HistoricoStatusPedido.pedido_id == pedido_id)
+        .order_by(HistoricoStatusPedido.id)
+        .all()
+    )
