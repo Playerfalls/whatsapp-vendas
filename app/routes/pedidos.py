@@ -11,6 +11,7 @@ from app.schemas.pedido import (
     PedidoStatusUpdate,
 )
 from app.services import pedido_service
+from app.models.enums import StatusPedido
 from app.services.exceptions import EntidadeNaoEncontrada, ErroNegocio
 
 router = APIRouter(prefix="/pedidos", tags=["Pedidos"])
@@ -38,8 +39,18 @@ def criar_pedido(dados: PedidoCreate, db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=list[PedidoResponse])
-def listar_pedidos(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return pedido_service.listar_pedidos(db, skip=skip, limit=limit)
+def listar_pedidos(
+    skip: int = 0,
+    limit: int = 100,
+    status_pedido: StatusPedido | None = None,
+    db: Session = Depends(get_db),
+):
+    return pedido_service.listar_pedidos(
+        db,
+        skip=skip,
+        limit=limit,
+        status_pedido=status_pedido,
+    )
 
 
 @router.get("/{pedido_id}", response_model=PedidoResponse)

@@ -129,8 +129,18 @@ def criar_pedido(db: Session, dados: PedidoCreate) -> Pedido:
     return pedido
 
 
-def listar_pedidos(db: Session, skip: int = 0, limit: int = 100) -> list[Pedido]:
-    return db.query(Pedido).offset(skip).limit(limit).all()
+def listar_pedidos(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    status_pedido: StatusPedido | None = None,
+) -> list[Pedido]:
+    query = db.query(Pedido)
+
+    if status_pedido is not None:
+        query = query.filter(Pedido.status == status_pedido)
+
+    return query.offset(skip).limit(limit).all()
 
 
 def obter_pedido(db: Session, pedido_id: int) -> Pedido | None:
