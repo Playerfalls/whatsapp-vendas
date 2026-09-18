@@ -164,7 +164,33 @@ def atualizar_status_pedido(
     if pedido is None:
         raise EntidadeNaoEncontrada("Pedido não encontrado.")
 
+    transicoes_permitidas = {
+        StatusPedido.NOVO: {
+            StatusPedido.PREPARANDO,
+            StatusPedido.CANCELADO,
+        },
+        StatusPedido.PREPARANDO: {
+            StatusPedido.PRONTO,
+            StatusPedido.CANCELADO,
+        },
+        StatusPedido.PRONTO: {
+            StatusPedido.EM_ROTA,
+            StatusPedido.CANCELADO,
+        },
+        StatusPedido.EM_ROTA: {
+            StatusPedido.FINALIZADO,
+            StatusPedido.RETORNADO,
+        },
+    }
+
     status_anterior = pedido.status
+
+    if novo_status not in transicoes_permitidas.get(status_anterior, set()):
+        raise ErroNegocio(
+            f"Não é permitido alterar o pedido de "
+            f"{status_anterior.value} para {novo_status.value}."
+        )
+
     pedido.status = novo_status
 
     db.add(
