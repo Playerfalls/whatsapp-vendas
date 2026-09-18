@@ -128,3 +128,16 @@ def marcar_pedido_em_rota(pedido_id: int, db: Session = Depends(get_db)):
         return pedido_service.marcar_pedido_em_rota(db, pedido_id)
     except EntidadeNaoEncontrada as erro:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)
+
+
+@router.patch("/{pedido_id}/finalizar", response_model=PedidoResponse)
+def marcar_pedido_finalizado(pedido_id: int, db: Session = Depends(get_db)):
+    """
+    Marca o pedido como FINALIZADO e registra a mudança em
+    HistoricoStatusPedido, via `pedido_service.marcar_pedido_finalizado`.
+    Não valida qual era o status anterior nesta etapa.
+    """
+    try:
+        return pedido_service.marcar_pedido_finalizado(db, pedido_id)
+    except EntidadeNaoEncontrada as erro:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)
