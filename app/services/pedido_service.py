@@ -201,3 +201,13 @@ def cancelar_pedido(db: Session, pedido_id: int) -> Pedido:
     futura.
     """
     return atualizar_status_pedido(db, pedido_id, StatusPedido.CANCELADO)
+
+
+def marcar_pedido_pronto(db: Session, pedido_id: int) -> Pedido:
+    """
+    Marca um pedido como PRONTO, registrando a mudança em
+    HistoricoStatusPedido. Reaproveita atualizar_status_pedido, sem
+    duplicar a lógica de alteração de status/histórico. Não valida qual
+    era o status anterior - essa regra fica para uma etapa futura.
+    """
+    return atualizar_status_pedido(db, pedido_id, StatusPedido.PRONTO)
