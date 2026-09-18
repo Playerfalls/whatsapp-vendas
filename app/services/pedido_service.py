@@ -140,7 +140,13 @@ def listar_pedidos(
     if status_pedido is not None:
         query = query.filter(Pedido.status == status_pedido)
 
-    return query.offset(skip).limit(limit).all()
+    return (
+        query
+        .order_by(Pedido.data_criacao.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 def obter_pedido(db: Session, pedido_id: int) -> Pedido | None:
