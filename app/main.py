@@ -5,6 +5,7 @@ from app.routes import (
     categorias,
     cidades,
     clientes,
+    configuracao_automacao,
     enderecos,
     pagamentos,
     pedidos,
@@ -27,6 +28,8 @@ app.include_router(categorias.router)
 app.include_router(produtos.router)
 app.include_router(pedidos.router)
 app.include_router(pagamentos.router)
+app.include_router(configuracao_automacao.router)
+
 
 
 @app.get("/health")

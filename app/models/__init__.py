@@ -9,6 +9,8 @@ from app.models.item_pedido import ItemPedido
 from app.models.pagamento import Pagamento
 from app.models.pedido import Pedido
 from app.models.produto import Produto
+from app.models.configuracao_automacao import ConfiguracaoAutomacao
+
 
 __all__ = [
     "Base",
@@ -22,4 +24,5 @@ __all__ = [
     "Pagamento",
     "Pedido",
     "Produto",
+    "ConfiguracaoAutomacao",
 ]
