@@ -231,3 +231,13 @@ def marcar_pedido_finalizado(db: Session, pedido_id: int) -> Pedido:
     era o status anterior - essa regra fica para uma etapa futura.
     """
     return atualizar_status_pedido(db, pedido_id, StatusPedido.FINALIZADO)
+
+
+def marcar_pedido_retornado(db: Session, pedido_id: int) -> Pedido:
+    """
+    Marca um pedido como RETORNADO, registrando a mudança em
+    HistoricoStatusPedido. Reaproveita atualizar_status_pedido, sem
+    duplicar a lógica de alteração de status/histórico. Não valida qual
+    era o status anterior - essa regra fica para uma etapa futura.
+    """
+    return atualizar_status_pedido(db, pedido_id, StatusPedido.RETORNADO)
