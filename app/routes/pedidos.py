@@ -89,3 +89,16 @@ def obter_pedido_detalhado(pedido_id: int, db: Session = Depends(get_db)):
         return pedido_service.obter_pedido_detalhado(db, pedido_id)
     except EntidadeNaoEncontrada as erro:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)
+
+
+@router.patch("/{pedido_id}/cancelar", response_model=PedidoResponse)
+def cancelar_pedido(pedido_id: int, db: Session = Depends(get_db)):
+    """
+    Cancela o pedido (status -> CANCELADO) e registra a mudança em
+    HistoricoStatusPedido, via `pedido_service.cancelar_pedido`. Não
+    valida se o status atual permite cancelamento nesta etapa.
+    """
+    try:
+        return pedido_service.cancelar_pedido(db, pedido_id)
+    except EntidadeNaoEncontrada as erro:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)

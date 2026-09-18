@@ -190,3 +190,14 @@ def obter_pedido_detalhado(db: Session, pedido_id: int) -> Pedido:
     if pedido is None:
         raise EntidadeNaoEncontrada("Pedido não encontrado.")
     return pedido
+
+
+def cancelar_pedido(db: Session, pedido_id: int) -> Pedido:
+    """
+    Cancela um pedido (status -> CANCELADO), registrando a mudança em
+    HistoricoStatusPedido. Reaproveita atualizar_status_pedido, sem
+    duplicar a lógica de alteração de status/histórico. Não valida se o
+    status atual permite cancelamento - essa regra fica para uma etapa
+    futura.
+    """
+    return atualizar_status_pedido(db, pedido_id, StatusPedido.CANCELADO)
