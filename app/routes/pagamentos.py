@@ -70,8 +70,15 @@ def atualizar_pagamento(
         exclude={"pedido_id"},
     )
 
-    return pagamento_service.atualizar_pagamento(
-        db,
-        pagamento,
-        dados_atualizacao,
+    try:
+        return pagamento_service.atualizar_pagamento(
+            db,
+            pagamento,
+            dados_atualizacao,
     )
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(erro),
+    )
+    

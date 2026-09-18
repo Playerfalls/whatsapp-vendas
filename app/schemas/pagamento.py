@@ -26,17 +26,8 @@ class PagamentoCreate(PagamentoBase):
 
 
 class PagamentoUpdate(BaseModel):
-    """
-    Schema de entrada para atualização parcial de um pagamento.
-    Todos os campos são opcionais (PATCH semântico), incluindo
-    `status_pagamento` (ex: mudança de PENDENTE para PAGO).
-    """
-
-    pedido_id: int | None = None
     forma_pagamento: FormaPagamento | None = None
     status_pagamento: StatusPagamento | None = None
-    valor: Decimal | None = None
-    data_pagamento: datetime | None = None
 
 
 class PagamentoResponse(PagamentoBase):
