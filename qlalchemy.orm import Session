@@ -1,0 +1,101 @@
+[1mdiff --git a/app/routes/pagamentos.py b/app/routes/pagamentos.py[m
+[1mindex 273c201..1fa9c6d 100644[m
+[1m--- a/app/routes/pagamentos.py[m
+[1m+++ b/app/routes/pagamentos.py[m
+[36m@@ -2,7 +2,12 @@[m [mfrom fastapi import APIRouter, Depends, HTTPException, status[m
+ from sqlalchemy.orm import Session[m
+ [m
+ from app.database.session import get_db[m
+[31m-from app.schemas.pagamento import PagamentoResponse[m
+[32m+[m[32mfrom app.models.pagamento import Pagamento[m
+[32m+[m[32mfrom app.schemas.pagamento import ([m
+[32m+[m[32m    PagamentoCreate,[m
+[32m+[m[32m    PagamentoResponse,[m
+[32m+[m[32m    PagamentoUpdate,[m
+[32m+[m[32m)[m
+ from app.services import pagamento_service[m
+ [m
+ router = APIRouter(prefix="/pagamentos", tags=["Pagamentos"])[m
+[36m@@ -24,4 +29,49 @@[m [mdef obter_pagamento_por_pedido([m
+             detail="Pagamento não encontrado.",[m
+         )[m
+ [m
+[31m-    return pagamento[m
+\ No newline at end of file[m
+[32m+[m[32m    return pagamento[m
+[32m+[m
+[32m+[m
+[32m+[m[32m@router.post([m
+[32m+[m[32m    "",[m
+[32m+[m[32m    response_model=PagamentoResponse,[m
+[32m+[m[32m    status_code=status.HTTP_201_CREATED,[m
+[32m+[m[32m)[m
+[32m+[m[32mdef criar_pagamento([m
+[32m+[m[32m    dados: PagamentoCreate,[m
+[32m+[m[32m    db: Session = Depends(get_db),[m
+[32m+[m[32m):[m
+[32m+[m[32m    pagamento = Pagamento(**dados.model_dump())[m
+[32m+[m
+[32m+[m[32m    return pagamento_service.criar_pagamento(db, pagamento)[m
+[32m+[m
+[32m+[m
+[32m+[m[32m@router.patch([m
+[32m+[m[32m    "/{pagamento_id}",[m
+[32m+[m[32m    response_model=PagamentoResponse,[m
+[32m+[m[32m)[m
+[32m+[m[32mdef atualizar_pagamento([m
+[32m+[m[32m    pagamento_id: int,[m
+[32m+[m[32m    dados: PagamentoUpdate,[m
+[32m+[m[32m    db: Session = Depends(get_db),[m
+[32m+[m[32m):[m
+[32m+[m[32m    pagamento = db.query(Pagamento).filter([m
+[32m+[m[32m        Pagamento.id == pagamento_id[m
+[32m+[m[32m    ).first()[m
+[32m+[m
+[32m+[m[32m    if pagamento is None:[m
+[32m+[m[32m        raise HTTPException([m
+[32m+[m[32m            status_code=status.HTTP_404_NOT_FOUND,[m
+[32m+[m[32m            detail="Pagamento não encontrado.",[m
+[32m+[m[32m        )[m
+[32m+[m
+[32m+[m[32m    dados_atualizacao = dados.model_dump([m
+[32m+[m[32m        exclude_unset=True,[m
+[32m+[m[32m        exclude={"pedido_id"},[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m[32m    return pagamento_service.atualizar_pagamento([m
+[32m+[m[32m        db,[m
+[32m+[m[32m        pagamento,[m
+[32m+[m[32m        dados_atualizacao,[m
+[32m+[m[32m    )[m
+\ No newline at end of file[m
+[1mdiff --git a/app/services/pagamento_service.py b/app/services/pagamento_service.py[m
+[1mindex 09c9e65..163a079 100644[m
+[1m--- a/app/services/pagamento_service.py[m
+[1m+++ b/app/services/pagamento_service.py[m
+[36m@@ -10,4 +10,22 @@[m [mdef obter_pagamento_por_pedido([m
+         db.query(Pagamento)[m
+         .filter(Pagamento.pedido_id == pedido_id)[m
+         .first()[m
+[31m-    )[m
+\ No newline at end of file[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m[32mdef criar_pagamento(db: Session, pagamento: Pagamento) -> Pagamento:[m
+[32m+[m[32m    db.add(pagamento)[m
+[32m+[m[32m    db.commit()[m
+[32m+[m[32m    db.refresh(pagamento)[m
+[32m+[m
+[32m+[m[32m    return pagamento[m
+[32m+[m
+[32m+[m[32mdef atualizar_pagamento([m
+[32m+[m[32m    db: Session, pagamento: Pagamento, dados: dict[m
+[32m+[m[32m) -> Pagamento:[m
+[32m+[m[32m    for campo, valor in dados.items():[m
+[32m+[m[32m        setattr(pagamento, campo, valor)[m
+[32m+[m
+[32m+[m[32m    db.commit()[m
+[32m+[m[32m    db.refresh(pagamento)[m
+[32m+[m
+[32m+[m[32m    return pagamento[m
+\ No newline at end of file[m
