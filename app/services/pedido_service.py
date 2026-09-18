@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.cliente import Cliente
 from app.models.endereco import Endereco
@@ -135,7 +135,7 @@ def listar_pedidos(
     limit: int = 100,
     status_pedido: StatusPedido | None = None,
 ) -> list[Pedido]:
-    query = db.query(Pedido)
+    query = db.query(Pedido).options(joinedload(Pedido.cliente))
 
     if status_pedido is not None:
         query = query.filter(Pedido.status == status_pedido)

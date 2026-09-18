@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasPath, BaseModel, ConfigDict, Field
 
 from app.models.enums import FormaPagamento, StatusPedido
 from app.schemas.item_pedido import ItemPedidoCreate, ItemPedidoResponse
@@ -142,6 +142,7 @@ class PedidoResumoResponse(BaseModel):
 
     id: int
     cliente_id: int
+    cliente_nome: str = Field(validation_alias=AliasPath("cliente", "nome"))
     endereco_id: int | None = None
     bairro_entrega_nome: str
     cidade_entrega_nome: str
