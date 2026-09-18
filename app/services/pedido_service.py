@@ -306,12 +306,30 @@ def marcar_pedido_em_rota(db: Session, pedido_id: int) -> Pedido:
 
 def marcar_pedido_finalizado(db: Session, pedido_id: int) -> Pedido:
     """
-    Marca um pedido como FINALIZADO, registrando a mudança em
-    HistoricoStatusPedido. Reaproveita atualizar_status_pedido, sem
-    duplicar a lógica de alteração de status/histórico. Não valida qual
-    era o status anterior - essa regra fica para uma etapa futura.
+    Finaliza um pedido somente quando o pagamento estiver confirmado como PAGO.
     """
-    return atualizar_status_pedido(db, pedido_id, StatusPedido.FINALIZADO)
+    pedido = db.get(Pedido, pedido_id)
+
+    if pedido is None:
+        raise EntidadeNaoEncontrada("Pedido não encontrado.")
+
+    pagamento = pedido.pagamento
+
+    if pagamento is None:
+        raise ErroNegocio(
+            "Não é possível finalizar um pedido sem pagamento."
+        )
+
+    if pagamento.status_pagamento != StatusPagamento.PAGO:
+        raise ErroNegocio(
+            "Não é possível finalizar um pedido sem o pagamento confirmado."
+        )
+
+    return atualizar_status_pedido(
+        db,
+        pedido_id,
+        StatusPedido.FINALIZADO,
+    )
 
 
 def marcar_pedido_retornado(db: Session, pedido_id: int) -> Pedido:

@@ -165,7 +165,15 @@ def marcar_pedido_finalizado(pedido_id: int, db: Session = Depends(get_db)):
     try:
         return pedido_service.marcar_pedido_finalizado(db, pedido_id)
     except EntidadeNaoEncontrada as erro:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=erro.mensagem,
+        )
+    except ErroNegocio as erro:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=erro.mensagem,
+        )
 
 
 @router.patch("/{pedido_id}/retornado", response_model=PedidoResponse)
