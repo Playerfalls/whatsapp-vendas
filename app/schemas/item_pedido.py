@@ -5,11 +5,10 @@ from pydantic import BaseModel, ConfigDict
 
 class ItemPedidoBase(BaseModel):
     """
-    Campos comuns de ItemPedido, compartilhados entre Create e Response.
-
-    `preco_unitario` e `subtotal` são os valores snapshot no momento da
-    compra, exatamente como definidos no model — este schema não recalcula
-    nem valida esses valores, apenas os transporta.
+    Campos completos de um item de pedido, refletindo o model ItemPedido.
+    Usado como base do schema de resposta. `pedido_id`, `preco_unitario`
+    e `subtotal` são preenchidos pelo backend (nunca pela entrada do
+    cliente) - ver ItemPedidoCreate.
     """
 
     pedido_id: int
@@ -19,10 +18,20 @@ class ItemPedidoBase(BaseModel):
     subtotal: Decimal
 
 
-class ItemPedidoCreate(ItemPedidoBase):
-    """Schema de entrada para criação de um item de pedido."""
+class ItemPedidoCreate(BaseModel):
+    """
+    Schema de entrada para o cliente solicitar um item dentro de um
+    pedido.
 
-    pass
+    Contém apenas o que o cliente realmente escolhe: qual produto e em
+    que quantidade. `pedido_id` é atribuído pelo backend a partir do
+    pedido em criação; `preco_unitario` e `subtotal` serão calculados
+    pelo pedido_service a partir do preço atual do produto no momento da
+    compra - nunca informados pelo cliente.
+    """
+
+    produto_id: int
+    quantidade: int
 
 
 class ItemPedidoUpdate(BaseModel):

@@ -3,17 +3,19 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models.enums import StatusPedido
+from app.models.enums import FormaPagamento, StatusPedido
+from app.schemas.item_pedido import ItemPedidoCreate
 
 
 class PedidoBase(BaseModel):
     """
-    Campos comuns de Pedido, compartilhados entre Create e Response.
+    Campos completos de um pedido, refletindo o model Pedido. Usado como
+    base do schema de resposta.
 
-    `endereco_id` é opcional e apenas informativo (mesmo comportamento do
-    model). Os demais campos de entrega (`cep_entrega`,
-    `logradouro_entrega` etc.) são o snapshot dos dados no momento da
-    compra, conforme já definido na modelagem.
+    Os campos de entrega (`cep_entrega`, `logradouro_entrega` etc.) e
+    `taxa_entrega_aplicada`/`valor_total` são o snapshot calculado pelo
+    backend no momento da criação — nunca informados diretamente pelo
+    cliente (ver PedidoCreate).
     """
 
     cliente_id: int
@@ -29,16 +31,23 @@ class PedidoBase(BaseModel):
     valor_total: Decimal
 
 
-class PedidoCreate(PedidoBase):
+class PedidoCreate(BaseModel):
     """
-    Schema de entrada para criação de um pedido.
+    Schema de entrada para o cliente solicitar um pedido.
 
-    `status` não é exposto aqui: o model define `NOVO` como valor padrão
-    no momento da criação, então não faz sentido o cliente da API
-    informá-lo na criação.
+    Contém apenas o que o cliente realmente escolhe: para qual cliente,
+    qual endereço cadastrado (usado pelo pedido_service para copiar o
+    snapshot de entrega e a taxa vigente do bairro), a forma de
+    pagamento escolhida e quais itens deseja. Todos os campos de
+    entrega, a taxa aplicada e o valor total serão calculados pelo
+    backend a partir de `endereco_id` e dos itens - nunca informados
+    diretamente pelo cliente.
     """
 
-    pass
+    cliente_id: int
+    endereco_id: int
+    forma_pagamento: FormaPagamento
+    itens: list[ItemPedidoCreate]
 
 
 class PedidoUpdate(BaseModel):
