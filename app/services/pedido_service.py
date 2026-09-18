@@ -178,3 +178,15 @@ def obter_historico_status_pedido(
         .order_by(HistoricoStatusPedido.id)
         .all()
     )
+
+
+def obter_pedido_detalhado(db: Session, pedido_id: int) -> Pedido:
+    """
+    Busca um pedido para exibição detalhada (com itens e pagamento).
+    Nenhum valor é recalculado aqui - a agregação/renomeação de campos
+    para a resposta é feita inteiramente por PedidoDetalhadoResponse.
+    """
+    pedido = db.get(Pedido, pedido_id)
+    if pedido is None:
+        raise EntidadeNaoEncontrada("Pedido não encontrado.")
+    return pedido

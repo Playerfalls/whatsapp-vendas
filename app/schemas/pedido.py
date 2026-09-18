@@ -1,10 +1,11 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import FormaPagamento, StatusPedido
-from app.schemas.item_pedido import ItemPedidoCreate
+from app.schemas.item_pedido import ItemPedidoCreate, ItemPedidoResponse
+from app.schemas.pagamento import PagamentoResponse
 
 
 class PedidoBase(BaseModel):
@@ -91,3 +92,40 @@ class PedidoStatusUpdate(BaseModel):
     """
 
     status: StatusPedido
+
+
+class PedidoDetalhadoResponse(BaseModel):
+    """
+    Schema de saída para a consulta detalhada de um pedido
+    (GET /pedidos/{pedido_id}/detalhado), incluindo itens e pagamento.
+
+    Reaproveita ItemPedidoResponse e PagamentoResponse já existentes,
+    em vez de duplicar schemas. `total` é um alias de leitura para o
+    campo `valor_total` do model Pedido - nenhum valor é recalculado, só
+    exposto com outro nome de campo na resposta.
+
+    Não há campo `subtotal`: o model Pedido não possui esse valor
+    persistido (só existe `subtotal` por item, em ItemPedido), e este
+    endpoint não deve calcular valores - apenas expor o que já está
+    gravado no banco.
+    """
+
+    id: int
+    cliente_id: int
+    endereco_id: int | None = None
+    cep_entrega: str
+    logradouro_entrega: str
+    numero_entrega: str
+    complemento_entrega: str | None = None
+    ponto_referencia_entrega: str | None = None
+    bairro_entrega_nome: str
+    cidade_entrega_nome: str
+    taxa_entrega_aplicada: Decimal
+    total: Decimal = Field(validation_alias="valor_total")
+    status: StatusPedido
+    data_criacao: datetime
+    data_atualizacao: datetime
+    itens: list[ItemPedidoResponse]
+    pagamento: PagamentoResponse
+
+    model_config = ConfigDict(from_attributes=True)

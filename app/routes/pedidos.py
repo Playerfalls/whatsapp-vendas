@@ -4,7 +4,12 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.schemas.historico_status_pedido import HistoricoStatusPedidoResponse
-from app.schemas.pedido import PedidoCreate, PedidoResponse, PedidoStatusUpdate
+from app.schemas.pedido import (
+    PedidoCreate,
+    PedidoDetalhadoResponse,
+    PedidoResponse,
+    PedidoStatusUpdate,
+)
 from app.services import pedido_service
 from app.services.exceptions import EntidadeNaoEncontrada, ErroNegocio
 
@@ -70,5 +75,17 @@ def atualizar_status_pedido(
 def obter_historico_pedido(pedido_id: int, db: Session = Depends(get_db)):
     try:
         return pedido_service.obter_historico_status_pedido(db, pedido_id)
+    except EntidadeNaoEncontrada as erro:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)
+
+
+@router.get("/{pedido_id}/detalhado", response_model=PedidoDetalhadoResponse)
+def obter_pedido_detalhado(pedido_id: int, db: Session = Depends(get_db)):
+    """
+    Retorna o pedido com seus itens e pagamento. Não inclui histórico de
+    status (ver GET /pedidos/{pedido_id}/historico para isso).
+    """
+    try:
+        return pedido_service.obter_pedido_detalhado(db, pedido_id)
     except EntidadeNaoEncontrada as erro:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=erro.mensagem)
