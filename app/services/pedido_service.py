@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.cliente import Cliente
 from app.models.endereco import Endereco
-from app.models.enums import StatusPagamento, StatusPedido
+from app.models.enums import FormaPagamento, StatusPagamento, StatusPedido
 from app.models.historico_status_pedido import HistoricoStatusPedido
 from app.models.item_pedido import ItemPedido
 from app.models.pagamento import Pagamento
@@ -194,6 +194,19 @@ def atualizar_status_pedido(
             f"Não é permitido alterar o pedido de "
             f"{status_anterior.value} para {novo_status.value}."
         )
+
+    if novo_status == StatusPedido.EM_ROTA:
+        pagamento = pedido.pagamento
+
+        if (
+            pagamento is not None
+            and pagamento.forma_pagamento == FormaPagamento.PIX
+            and pagamento.status_pagamento == StatusPagamento.PENDENTE
+        ):
+            raise ErroNegocio(
+                "Não é possível colocar um pedido com pagamento PIX "
+                "pendente em rota."
+            )
 
     pedido.status = novo_status
 
