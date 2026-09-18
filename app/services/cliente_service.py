@@ -51,6 +51,23 @@ def listar_clientes(db: Session, skip: int = 0, limit: int = 100) -> list[Client
 def obter_cliente(db: Session, cliente_id: int) -> Cliente | None:
     return db.get(Cliente, cliente_id)
 
+def obter_cliente_por_telefone(
+    db: Session,
+    telefone: str,
+) -> Cliente | None:
+    telefone_normalizado = _normalizar_telefone(telefone)
+
+    if not telefone_normalizado:
+        return None
+
+    return (
+        db.query(Cliente)
+        .filter(
+            Cliente.telefone == telefone_normalizado,
+            Cliente.ativo.is_(True),
+        )
+        .first()
+    )
 
 def atualizar_cliente(
     db: Session, cliente_id: int, dados: ClienteUpdate
