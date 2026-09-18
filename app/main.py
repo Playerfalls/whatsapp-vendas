@@ -1,7 +1,15 @@
 from fastapi import FastAPI
 
-from app.routes import bairros, categorias, cidades, clientes, enderecos, pedidos, produtos
-
+from app.routes import (
+    bairros,
+    categorias,
+    cidades,
+    clientes,
+    enderecos,
+    pagamentos,
+    pedidos,
+    produtos,
+)
 app = FastAPI(
     title="Projeto Delivery - Laticínio",
     description=(
@@ -18,6 +26,7 @@ app.include_router(bairros.router)
 app.include_router(categorias.router)
 app.include_router(produtos.router)
 app.include_router(pedidos.router)
+app.include_router(pagamentos.router)
 
 
 @app.get("/health")
