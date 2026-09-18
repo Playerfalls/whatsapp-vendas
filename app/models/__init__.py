@@ -10,6 +10,7 @@ from app.models.pagamento import Pagamento
 from app.models.pedido import Pedido
 from app.models.produto import Produto
 from app.models.configuracao_automacao import ConfiguracaoAutomacao
+from app.models.conversa_whatsapp import ConversaWhatsapp
 
 
 __all__ = [
@@ -25,4 +26,5 @@ __all__ = [
     "Pedido",
     "Produto",
     "ConfiguracaoAutomacao",
+    "ConversaWhatsapp",
 ]

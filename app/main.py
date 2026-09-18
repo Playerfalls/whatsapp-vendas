@@ -10,6 +10,7 @@ from app.routes import (
     pagamentos,
     pedidos,
     produtos,
+    conversa_whatsapp,
 )
 app = FastAPI(
     title="Projeto Delivery - Laticínio",
@@ -29,6 +30,7 @@ app.include_router(produtos.router)
 app.include_router(pedidos.router)
 app.include_router(pagamentos.router)
 app.include_router(configuracao_automacao.router)
+app.include_router(conversa_whatsapp.router)
 
 
 
