@@ -1,6 +1,9 @@
+import unicodedata
+
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
+from difflib import SequenceMatcher
 
 from app.models.categoria import Categoria
 from app.models.produto import Produto
@@ -98,3 +101,176 @@ def desativar_produto(db: Session, produto_id: int) -> Produto | None:
     db.commit()
     db.refresh(produto)
     return produto
+
+def _normalizar_texto(texto: str) -> str:
+    texto_normalizado = texto.strip().lower()
+    texto_normalizado = unicodedata.normalize(
+        "NFD",
+        texto_normalizado,
+    )
+
+    texto_normalizado = "".join(
+        caractere
+        for caractere in texto_normalizado
+        if unicodedata.category(caractere) != "Mn"
+    )
+
+    return _normalizar_plural(texto_normalizado)
+
+
+def _normalizar_plural(texto: str) -> str:
+    palavras = texto.split()
+
+    palavras_normalizadas = []
+
+    for palavra in palavras:
+        if palavra.endswith("oes") and len(palavra) > 4:
+            palavra = palavra[:-3] + "ao"
+        elif palavra.endswith("s") and len(palavra) > 3:
+            palavra = palavra[:-1]
+
+        palavras_normalizadas.append(palavra)
+
+    return " ".join(palavras_normalizadas)
+
+def buscar_produtos_por_nome(
+    db: Session,
+    texto: str,
+) -> list[Produto]:
+    texto_normalizado = _normalizar_texto(texto)
+
+    if not texto_normalizado:
+        return []
+
+    return (
+        db.query(Produto)
+        .filter(
+            Produto.ativo.is_(True),
+            Produto.nome.ilike(f"%{texto_normalizado}%"),
+        )
+        .all()
+    )
+def _calcular_similaridade(texto_a: str, texto_b: str) -> float:
+    return SequenceMatcher(
+        None,
+        _normalizar_texto(texto_a),
+        _normalizar_texto(texto_b),
+    ).ratio()
+
+def buscar_produtos_por_similaridade(
+    db: Session,
+    texto: str,
+    limite: float = 0.85,
+) -> list[Produto]:
+    texto_normalizado = _normalizar_texto(texto)
+
+    if not texto_normalizado:
+        return []
+
+    produtos = (
+        db.query(Produto)
+        .filter(Produto.ativo.is_(True))
+        .all()
+    )
+
+    candidatos = []
+
+    for produto in produtos:
+        nome_normalizado = _normalizar_texto(produto.nome)
+
+        if texto_normalizado in nome_normalizado:
+            candidatos.append(produto)
+            continue
+
+        palavras_nome = nome_normalizado.split()
+
+        for palavra in palavras_nome:
+            similaridade = _calcular_similaridade(
+                texto_normalizado,
+                palavra,
+            )
+
+            if similaridade >= limite:
+                candidatos.append(produto)
+                break
+
+    return candidatos
+
+def identificar_produto(
+    db: Session,
+    texto: str,
+) -> Produto | list[Produto] | None:
+    candidatos = buscar_produtos_por_similaridade(
+        db,
+        texto,
+    )
+
+    if not candidatos:
+        return None
+
+    if len(candidatos) == 1:
+        return candidatos[0]
+
+    return candidatos
+
+def interpretar_produto(
+    db: Session,
+    texto: str,
+) -> dict:
+    resultado = identificar_produto(
+        db,
+        texto,
+    )
+
+    if resultado is None:
+        return {
+            "status": "NAO_ENCONTRADO",
+            "produto": None,
+            "candidatos": [],
+            "mensagem": (
+                "Não consegui identificar esse produto. 🤔 "
+                "Pode verificar se a digitação está correta "
+                "e enviar novamente?"
+            ),
+        }
+
+    if isinstance(resultado, Produto):
+        return {
+            "status": "IDENTIFICADO",
+            "produto": resultado,
+            "candidatos": [],
+            "mensagem": "Produto identificado.",
+        }
+
+    return {
+        "status": "AMBIGUO",
+        "produto": None,
+        "candidatos": resultado,
+        "mensagem": (
+            "Encontrei mais de uma opção para esse produto. "
+            "Qual delas você deseja?"
+        ),
+    }
+
+def extrair_quantidade(texto: str) -> tuple[int, str]:
+    texto_limpo = texto.strip()
+
+    partes = texto_limpo.split(maxsplit=1)
+
+    if not partes:
+        return 1, ""
+
+    primeira_parte = partes[0]
+
+    if primeira_parte.isdigit():
+        quantidade = int(primeira_parte)
+
+        if quantidade <= 0:
+            return 1, texto_limpo
+
+        if len(partes) == 1:
+            return quantidade, ""
+
+        return quantidade, partes[1]
+
+    return 1, texto_limpo
