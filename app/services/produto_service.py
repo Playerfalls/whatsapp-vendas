@@ -60,6 +60,49 @@ def criar_produto(db: Session, dados: ProdutoCreate) -> Produto:
 def listar_produtos(db: Session, skip: int = 0, limit: int = 100) -> list[Produto]:
     return db.query(Produto).offset(skip).limit(limit).all()
 
+def listar_catalogo(
+    db: Session,
+) -> list[Produto]:
+    return (
+        db.query(Produto)
+        .filter(Produto.ativo.is_(True))
+        .order_by(Produto.categoria_id, Produto.nome)
+        .all()
+    )
+
+def formatar_catalogo(
+    produtos: list[Produto],
+) -> str:
+    if not produtos:
+        return "No momento, não há produtos disponíveis."
+
+    categorias = {}
+
+    for produto in produtos:
+        categorias.setdefault(produto.categoria_id, []).append(produto)
+
+    linhas = [
+        "🛒 *Nosso catálogo*",
+        "",
+    ]
+
+    for produtos_categoria in categorias.values():
+        categoria = produtos_categoria[0].categoria
+
+        linhas.append(f"📦 *{categoria.nome}*")
+
+        for produto in produtos_categoria:
+            preco = f"{produto.preco:.2f}".replace(".", ",")
+
+            linhas.append(
+                f"• {produto.nome} — R$ {preco}"
+            )
+
+        linhas.append("")
+
+    linhas.append("Digite os produtos que deseja.")
+
+    return "\n".join(linhas)
 
 def obter_produto(db: Session, produto_id: int) -> Produto | None:
     return db.get(Produto, produto_id)
@@ -252,7 +295,7 @@ def interpretar_produto(
         ),
     }
 
-def extrair_quantidade(texto: str) -> tuple[int, str]:
+def extrair_quantidade(texto: str) -> tuple[int | None, str]:
     texto_limpo = texto.strip()
 
     partes = texto_limpo.split(maxsplit=1)
@@ -265,12 +308,35 @@ def extrair_quantidade(texto: str) -> tuple[int, str]:
     if primeira_parte.isdigit():
         quantidade = int(primeira_parte)
 
-        if quantidade <= 0:
-            return 1, texto_limpo
+        if len(partes) == 1:
+            return quantidade if quantidade > 0 else None, ""
+
+        return (
+            quantidade if quantidade > 0 else None,
+            partes[1],
+        )
+
+    return 1, texto_limpo
+
+def extrair_quantidade(texto: str) -> tuple[int | None, str]:
+    texto_limpo = texto.strip()
+
+    partes = texto_limpo.split(maxsplit=1)
+
+    if not partes:
+        return 1, ""
+
+    primeira_parte = partes[0]
+
+    if primeira_parte.lstrip("-").isdigit():
+        quantidade = int(primeira_parte)
 
         if len(partes) == 1:
-            return quantidade, ""
+            return quantidade if quantidade > 0 else None, ""
 
-        return quantidade, partes[1]
+        return (
+            quantidade if quantidade > 0 else None,
+            partes[1],
+        )
 
     return 1, texto_limpo

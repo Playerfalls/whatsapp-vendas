@@ -1,6 +1,7 @@
 
 from sqlalchemy.orm import Session
 
+from app.services import produto_service
 from app.models.conversa_whatsapp import ConversaWhatsapp
 from app.services import conversa_whatsapp_service
 from app.services import cliente_service
@@ -130,11 +131,9 @@ def processar_conversa(
                 "ESCOLHENDO_PRODUTOS",
             )
 
-            return (
-                "Perfeito! 🛒 "
-                "Vamos montar seu pedido. "
-                "Quais produtos você deseja?"
-            )
+            catalogo = produto_service.listar_catalogo(db)
+
+            return produto_service.formatar_catalogo(catalogo)
 
         if (
             "atendente" in mensagem_normalizada

@@ -28,6 +28,8 @@ if config.config_file_name is not None:
 # automaticamente (autogenerate) em revisões futuras.
 target_metadata = Base.metadata
 
+print("TABELAS VISTAS PELO ALEMBIC:", target_metadata.tables.keys())
+
 
 def run_migrations_offline() -> None:
     """Executa as migrations em modo 'offline' (gera SQL sem conectar ao banco)."""
