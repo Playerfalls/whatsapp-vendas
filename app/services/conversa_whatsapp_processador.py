@@ -7,11 +7,74 @@ from app.services import conversa_whatsapp_service
 from app.services import cliente_service
 from app.schemas.cliente import ClienteCreate
 from app.services.conversa_whatsapp_estado import (
+    ESTADO_CONFIRMAR_PEDIDO,
     ESTADO_IDENTIFICANDO_CLIENTE,
     ESTADO_INICIO,
     ESTADO_ESCOLHENDO_PRODUTOS,
 )
 
+def cliente_finalizou_produtos(mensagem: str) -> bool:
+    mensagem_normalizada = mensagem.strip().lower()
+
+    frases_finalizacao = {
+        "não",
+        "nao",
+        "só isso",
+        "so isso",
+        "é só isso",
+        "e só isso",
+        "é isso",
+        "e isso",
+        "pode finalizar",
+        "finalizar",
+        "finaliza",
+        "fechar pedido",
+        "fechar",
+    }
+
+    return mensagem_normalizada in frases_finalizacao
+
+def interpretar_confirmacao_pedido(mensagem: str) -> str:
+    mensagem_normalizada = mensagem.strip().lower()
+
+    confirmacoes = {
+        "sim",
+        "s",
+        "confirmar",
+        "confirmado",
+        "pode confirmar",
+        "pode fechar",
+        "fechar pedido",
+        "finalizar",
+        "pode finalizar",
+    }
+
+    cancelamentos = {
+        "não",
+        "nao",
+        "n",
+        "cancelar",
+        "cancela",
+    }
+
+    alteracoes = {
+        "alterar",
+        "editar",
+        "mudar",
+        "quero alterar",
+        "quero editar",
+    }
+
+    if mensagem_normalizada in confirmacoes:
+        return "CONFIRMAR"
+
+    if mensagem_normalizada in cancelamentos:
+        return "CANCELAR"
+
+    if mensagem_normalizada in alteracoes:
+        return "ALTERAR"
+
+    return "NAO_IDENTIFICADO"
 
 def processar_conversa(
     db: Session,
@@ -151,7 +214,7 @@ def processar_conversa(
                 "Vou encaminhar você para um atendente."
             )
 
-        return (
+            return (
             "Olá! 😊 Como posso te ajudar?\n\n"
             "1️⃣ Fazer um pedido\n"
             "2️⃣ Consultar pedido\n"
@@ -159,6 +222,23 @@ def processar_conversa(
         )
 
     if conversa.estado == ESTADO_ESCOLHENDO_PRODUTOS:
+        if cliente_finalizou_produtos(mensagem):
+            carrinho = carrinho_service.obter_ou_criar_carrinho(
+                db,
+                conversa,
+            )
+
+            conversa_whatsapp_service.alterar_estado(
+                db,
+                conversa,
+                ESTADO_CONFIRMAR_PEDIDO,
+            )
+
+            return carrinho_service.formatar_resumo(
+                db,
+                carrinho,
+            )
+
         resultado = produto_service.interpretar_item_pedido(
             db,
             mensagem,
@@ -203,6 +283,57 @@ def processar_conversa(
         return (
             f"✅ Adicionei {quantidade}x {produto.nome} ao seu pedido.\n\n"
             "Deseja adicionar mais alguma coisa?"
+        )
+
+    if conversa.estado == ESTADO_CONFIRMAR_PEDIDO:
+        resultado = interpretar_confirmacao_pedido(mensagem)
+
+        if resultado == "CONFIRMAR":
+            return (
+                "Pedido confirmado! ✅\n\n"
+                "Agora precisamos confirmar seu endereço de entrega."
+            )
+
+        if resultado == "CANCELAR":
+            carrinho_service.limpar_carrinho(
+                db,
+                carrinho_service.obter_ou_criar_carrinho(
+                    db,
+                    conversa,
+                ),
+            )
+
+            conversa_whatsapp_service.alterar_estado(
+                db,
+                conversa,
+                "MENU",
+            )
+
+            return (
+                "Tudo bem! 👍 "
+                "O pedido foi cancelado.\n\n"
+                "Como posso te ajudar?"
+            )
+
+        if resultado == "ALTERAR":
+            conversa_whatsapp_service.alterar_estado(
+                db,
+                conversa,
+                ESTADO_ESCOLHENDO_PRODUTOS,
+            )
+
+            return (
+                "Claro! 🛒 "
+                "Você pode adicionar, remover ou alterar "
+                "os produtos do seu pedido."
+            )
+
+        return (
+            "Não entendi. 🤔\n\n"
+            "Por favor, responda:\n"
+            "✅ Sim, para confirmar\n"
+            "❌ Não, para cancelar\n"
+            "✏️ Alterar, para modificar o pedido."
         )
 
     return "Mensagem recebida."

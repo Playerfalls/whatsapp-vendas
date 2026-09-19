@@ -181,3 +181,29 @@ def limpar_carrinho(
         db.delete(item)
 
     db.commit()
+
+
+def formatar_resumo(
+    db: Session,
+    carrinho: Carrinho,
+) -> str:
+    itens = listar_itens(db, carrinho)
+
+    if not itens:
+        return "Seu carrinho está vazio."
+
+    linhas = ["🛒 Resumo do seu pedido:\n"]
+
+    for item in itens:
+        subtotal = item.preco_unitario * item.quantidade
+
+        linhas.append(
+            f"{item.quantidade}x {item.produto.nome} "
+            f"— R$ {subtotal:.2f}"
+        )
+
+    total = calcular_total(db, carrinho)
+
+    linhas.append(f"\n💰 Total: R$ {total:.2f}")
+
+    return "\n".join(linhas)
