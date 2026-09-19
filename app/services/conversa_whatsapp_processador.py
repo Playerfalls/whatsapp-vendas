@@ -479,6 +479,52 @@ def processar_conversa(
             f"💰 Total: R$ {pedido.valor_total:.2f}\n"
             f"💳 Pagamento: {forma_pagamento.value}"
         )
+
+    if conversa.estado == "CONSULTANDO_PEDIDO":
+        cliente = cliente_service.obter_cliente_por_telefone(
+            db,
+            conversa.telefone,
+    )
+
+        if cliente is None:
+            return (
+            "Não consegui localizar seu cadastro. "
+            "Vamos precisar refazer o cadastro."
+        )
+
+        pedidos = pedido_service.listar_pedidos_do_cliente(
+            db,
+            cliente.id,
+            limit=1,
+    )
+
+        if not pedidos:
+            conversa_whatsapp_service.alterar_estado(
+                db,
+                conversa,
+                "MENU",
+        )
+
+            return (
+                "Você ainda não possui pedidos registrados. 📦\n\n"
+                "Como posso te ajudar?"
+        )
+
+        pedido = pedidos[0]
+
+        conversa_whatsapp_service.alterar_estado(
+            db,
+            conversa,
+            "MENU",
+    )
+
+        return (
+            f"📦 Pedido #{pedido.id}\n\n"
+            f"📌 Status: {pedido.status.value}\n"
+            f"💰 Total: R$ {pedido.valor_total:.2f}\n"
+            f"💳 Pagamento: {pedido.pagamento.forma_pagamento.value}\n\n"
+            "Como posso te ajudar?"
+    )
     
     return "Mensagem recebida."
 

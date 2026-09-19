@@ -293,6 +293,21 @@ def listar_pedidos(
 def obter_pedido(db: Session, pedido_id: int) -> Pedido | None:
     return db.get(Pedido, pedido_id)
 
+def listar_pedidos_do_cliente(
+    db: Session,
+    cliente_id: int,
+    limit: int = 10,
+) -> list[Pedido]:
+    return (
+        db.query(Pedido)
+        .filter(Pedido.cliente_id == cliente_id)
+        .options(
+            joinedload(Pedido.pagamento),
+        )
+        .order_by(Pedido.data_criacao.desc())
+        .limit(limit)
+        .all()
+    )
 
 def atualizar_status_pedido(
     db: Session, pedido_id: int, novo_status: StatusPedido
