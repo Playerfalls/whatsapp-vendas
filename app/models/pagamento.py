@@ -37,3 +37,8 @@ class Pagamento(Base):
     data_pagamento: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     pedido: Mapped["Pedido"] = relationship(back_populates="pagamento")
+
+    cobranca_pix: Mapped["CobrancaPix | None"] = relationship(
+        back_populates="pagamento",
+        uselist=False,
+    )

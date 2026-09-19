@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     db_host: str = "localhost"
     db_port: int = 3306
     db_name: str
+    
+        # Asaas
+    asaas_api_key: str
+    asaas_base_url: str = "https://api-sandbox.asaas.com/v3"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

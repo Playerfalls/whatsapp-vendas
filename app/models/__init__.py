@@ -13,6 +13,7 @@ from app.models.configuracao_automacao import ConfiguracaoAutomacao
 from app.models.conversa_whatsapp import ConversaWhatsapp
 from app.models.carrinho import Carrinho
 from app.models.item_carrinho import ItemCarrinho
+from app.models.cobranca_pix import CobrancaPix
 
 
 __all__ = [
@@ -31,4 +32,5 @@ __all__ = [
     "ConversaWhatsapp",
     "Carrinho",
     "ItemCarrinho",
+    "CobrancaPix",
 ] 
