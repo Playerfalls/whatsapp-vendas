@@ -1,7 +1,7 @@
-
 from sqlalchemy.orm import Session
 
 from app.services import produto_service
+from app.services import carrinho_service
 from app.models.conversa_whatsapp import ConversaWhatsapp
 from app.services import conversa_whatsapp_service
 from app.services import cliente_service
@@ -9,6 +9,7 @@ from app.schemas.cliente import ClienteCreate
 from app.services.conversa_whatsapp_estado import (
     ESTADO_IDENTIFICANDO_CLIENTE,
     ESTADO_INICIO,
+    ESTADO_ESCOLHENDO_PRODUTOS,
 )
 
 
@@ -157,4 +158,52 @@ def processar_conversa(
             "3️⃣ Falar com atendente"
         )
 
+    if conversa.estado == ESTADO_ESCOLHENDO_PRODUTOS:
+        resultado = produto_service.interpretar_item_pedido(
+            db,
+            mensagem,
+        )
+
+        if resultado["status"] == "AMBIGUO":
+            return (
+                "Encontrei mais de uma opção para esse produto. "
+                "Qual você deseja?"
+            )
+
+        if resultado["status"] == "QUANTIDADE_INVALIDA":
+            return (
+                "A quantidade informada não é válida. "
+                "Por favor, informe uma quantidade maior que zero."
+            )
+
+        if resultado["status"] == "NAO_ENCONTRADO":
+            return (
+                "Não encontrei esse produto no nosso catálogo. "
+                "Por favor, tente novamente."
+            )
+
+        produto = resultado["produto"]
+        quantidade = resultado["quantidade"]
+
+        carrinho = carrinho_service.obter_ou_criar_carrinho(
+            db,
+            conversa,
+        )
+
+        try:
+            carrinho_service.adicionar_item(
+                db,
+                carrinho,
+                produto,
+                quantidade,
+            )
+        except ValueError as erro:
+            return str(erro)
+
+        return (
+            f"✅ Adicionei {quantidade}x {produto.nome} ao seu pedido.\n\n"
+            "Deseja adicionar mais alguma coisa?"
+        )
+
     return "Mensagem recebida."
+

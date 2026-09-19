@@ -340,3 +340,57 @@ def extrair_quantidade(texto: str) -> tuple[int | None, str]:
         )
 
     return 1, texto_limpo
+
+def interpretar_item_pedido(
+    db: Session,
+    texto: str,
+) -> dict:
+    quantidade, texto_produto = extrair_quantidade(texto)
+
+    if quantidade is None:
+        return {
+            "status": "QUANTIDADE_INVALIDA",
+            "produto": None,
+            "quantidade": None,
+            "candidatos": [],
+            "mensagem": (
+                "A quantidade informada não é válida. "
+                "Por favor, informe uma quantidade maior que zero."
+            ),
+        }
+
+    resultado = identificar_produto(
+        db,
+        texto_produto,
+    )
+
+    if resultado is None:
+        return {
+            "status": "NAO_ENCONTRADO",
+            "produto": None,
+            "quantidade": quantidade,
+            "candidatos": [],
+            "mensagem": (
+                "Não consegui identificar esse produto."
+            ),
+        }
+
+    if isinstance(resultado, Produto):
+        return {
+            "status": "IDENTIFICADO",
+            "produto": resultado,
+            "quantidade": quantidade,
+            "candidatos": [],
+            "mensagem": "Produto identificado.",
+        }
+
+    return {
+        "status": "AMBIGUO",
+        "produto": None,
+        "quantidade": quantidade,
+        "candidatos": resultado,
+        "mensagem": (
+            "Encontrei mais de uma opção para esse produto. "
+            "Qual delas você deseja?"
+        ),
+    }
