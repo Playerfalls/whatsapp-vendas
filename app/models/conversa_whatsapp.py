@@ -29,6 +29,11 @@ class ConversaWhatsapp(Base):
         nullable=True,
     )
 
+    endereco_id: Mapped[int | None] = mapped_column(
+        ForeignKey("enderecos.id"),
+        nullable=True,
+)
+
     ultima_interacao: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,

@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ConversaWhatsappResponse(BaseModel):
+    endereco_id: int | None = None
     id: int
     telefone: str
     estado: str

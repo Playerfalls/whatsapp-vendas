@@ -51,6 +51,18 @@ def criar_endereco(db: Session, dados: EnderecoCreate) -> Endereco:
 def listar_enderecos(db: Session, skip: int = 0, limit: int = 100) -> list[Endereco]:
     return db.query(Endereco).offset(skip).limit(limit).all()
 
+def listar_enderecos_do_cliente(
+    db: Session,
+    cliente_id: int,
+) -> list[Endereco]:
+    return (
+        db.query(Endereco)
+        .filter(
+            Endereco.cliente_id == cliente_id,
+            Endereco.ativo.is_(True),
+        )
+        .all()
+    )
 
 def obter_endereco(db: Session, endereco_id: int) -> Endereco | None:
     return db.get(Endereco, endereco_id)

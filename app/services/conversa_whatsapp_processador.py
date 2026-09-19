@@ -7,6 +7,7 @@ from app.services import conversa_whatsapp_service
 from app.services import cliente_service
 from app.schemas.cliente import ClienteCreate
 from app.services.conversa_whatsapp_estado import (
+    ESTADO_CONFIRMAR_ENDERECO,
     ESTADO_CONFIRMAR_PEDIDO,
     ESTADO_IDENTIFICANDO_CLIENTE,
     ESTADO_INICIO,
@@ -289,10 +290,16 @@ def processar_conversa(
         resultado = interpretar_confirmacao_pedido(mensagem)
 
         if resultado == "CONFIRMAR":
+            conversa_whatsapp_service.alterar_estado(
+                db,
+                conversa,
+                ESTADO_CONFIRMAR_ENDERECO,
+    )
+
             return (
                 "Pedido confirmado! ✅\n\n"
-                "Agora precisamos confirmar seu endereço de entrega."
-            )
+                "Agora vamos confirmar seu endereço de entrega. 📍"
+    )
 
         if resultado == "CANCELAR":
             carrinho_service.limpar_carrinho(
