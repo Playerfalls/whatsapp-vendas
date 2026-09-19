@@ -1,19 +1,14 @@
-"""Cria tabela de carrinhos
+from typing import Sequence, Union
 
-Revision ID: df5000a78f06
-Revises: f4d1d100790e
-Create Date: 2026-09-18 23:51:45.091351
-
-"""
 from alembic import op
 import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'df5000a78f06'
-down_revision = 'f4d1d100790e'
-branch_labels = None
-depends_on = None
+revision: str = "df5000a78f06"
+down_revision: Union[str, Sequence[str], None] = "f4d1d100790e"
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:

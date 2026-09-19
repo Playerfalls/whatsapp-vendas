@@ -12,6 +12,7 @@ from app.models.produto import Produto
 from app.models.configuracao_automacao import ConfiguracaoAutomacao
 from app.models.conversa_whatsapp import ConversaWhatsapp
 from app.models.carrinho import Carrinho
+from app.models.item_carrinho import ItemCarrinho
 
 
 __all__ = [
@@ -29,4 +30,5 @@ __all__ = [
     "ConfiguracaoAutomacao",
     "ConversaWhatsapp",
     "Carrinho",
-]
+    "ItemCarrinho",
+] 
