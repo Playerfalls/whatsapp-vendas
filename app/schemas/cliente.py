@@ -7,13 +7,13 @@ class ClienteBase(BaseModel):
     """
     Campos comuns de Cliente, compartilhados entre Create e Response.
 
-    Observação: a normalização do telefone (mesma regra já documentada
-    no model Cliente) é responsabilidade da aplicação/service, não deste
-    schema — o schema apenas valida que é uma string.
+    Observação: a normalização do telefone e do CPF/CNPJ é responsabilidade
+    da aplicação/service, não deste schema.
     """
 
     nome: str
     telefone: str
+    cpf_cnpj: str | None = None
 
 
 class ClienteCreate(ClienteBase):
@@ -31,7 +31,7 @@ class ClienteUpdate(BaseModel):
     nome: str | None = None
     telefone: str | None = None
     ativo: bool | None = None
-
+    cpf_cnpj: str | None = None
 
 class ClienteResponse(ClienteBase):
     """Schema de saída, refletindo o model Cliente."""

@@ -18,7 +18,9 @@ from app.services.conversa_whatsapp_estado import (
     ESTADO_ESCOLHENDO_PRODUTOS,
     ESTADO_PEDIDO_CRIADO,
     ESTADO_ESCOLHER_PAGAMENTO,
+    ESTADO_AGUARDANDO_DOCUMENTO,
 )
+from app.services.exceptions import ErroNegocio
 
 def cliente_finalizou_produtos(mensagem: str) -> bool:
     mensagem_normalizada = mensagem.strip().lower()
@@ -173,6 +175,47 @@ def processar_conversa(
             "Seu cadastro foi realizado. "
             "Como posso te ajudar?"
         )
+
+    if conversa.estado == ESTADO_AGUARDANDO_DOCUMENTO:
+        cliente = cliente_service.obter_cliente_por_telefone(
+        db,
+        conversa.telefone,
+    )
+
+        if cliente is None:
+            return (
+                "Não consegui localizar seu cadastro. "
+                "Vamos precisar refazer o cadastro."
+        )
+
+        try:
+            cpf_cnpj = cliente_service.normalizar_cpf_cnpj(
+                mensagem,
+        )
+        except ErroNegocio:
+            return (
+                "CPF ou CNPJ inválido. 🤔\n\n"
+                "Digite um CPF com 11 dígitos "
+                "ou um CNPJ com 14 dígitos."
+        )
+
+        cliente.cpf_cnpj = cpf_cnpj
+        db.commit()
+        db.refresh(cliente)
+
+        conversa_whatsapp_service.alterar_estado(
+            db,
+            conversa,
+             ESTADO_ESCOLHER_PAGAMENTO,
+    )
+
+        return (
+            "CPF/CNPJ cadastrado com sucesso! ✅\n\n"
+            "Agora escolha a forma de pagamento:\n\n"
+            "1️⃣ Dinheiro\n"
+            "2️⃣ PIX\n"
+            "3️⃣ Cartão"
+    )
 
     if conversa.estado == "MENU":
         mensagem_normalizada = mensagem.strip().lower()
@@ -460,13 +503,33 @@ def processar_conversa(
                 "2️⃣ PIX\n"
                 "3️⃣ Cartão"
             )
+    conversa.forma_pagamento = forma_pagamento.value
 
-        conversa.forma_pagamento = forma_pagamento.value
-
-        pedido = pedido_service.criar_pedido_do_carrinho(
+    if forma_pagamento == FormaPagamento.PIX:
+        cliente = cliente_service.obter_cliente_por_telefone(
             db,
-            conversa,
+            conversa.telefone,
         )
+
+        if cliente is None:
+            return (
+                "Não consegui localizar seu cadastro. "
+                "Vamos precisar refazer o cadastro."
+            )
+
+        if not cliente.cpf_cnpj:
+            conversa_whatsapp_service.alterar_estado(
+                db,
+                conversa,
+                ESTADO_AGUARDANDO_DOCUMENTO,
+            )
+
+            return (
+                "Para realizar o pagamento via PIX, precisamos "
+                "do seu CPF ou CNPJ. 🔐\n\n"
+                "Digite apenas o CPF ou CNPJ."
+        )
+        
 
         conversa_whatsapp_service.alterar_estado(
             db,

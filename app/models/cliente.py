@@ -25,6 +25,10 @@ class Cliente(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     nome: Mapped[str] = mapped_column(String(150), nullable=False)
     telefone: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    cpf_cnpj: Mapped[str | None] = mapped_column(
+    String(14),
+    nullable=True,
+)
     data_cadastro: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )

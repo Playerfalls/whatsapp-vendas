@@ -9,6 +9,26 @@ def _normalizar_telefone(telefone: str) -> str:
     """Mantém apenas dígitos, removendo espaços e demais caracteres."""
     return "".join(caractere for caractere in telefone if caractere.isdigit())
 
+def _normalizar_cpf_cnpj(cpf_cnpj: str | None) -> str | None:
+    """Mantém apenas dígitos e valida o tamanho de CPF ou CNPJ."""
+    if cpf_cnpj is None:
+        return None
+
+    cpf_cnpj_normalizado = "".join(
+        caractere for caractere in cpf_cnpj if caractere.isdigit()
+    )
+
+    if not cpf_cnpj_normalizado:
+        return None
+
+    if len(cpf_cnpj_normalizado) not in (11, 14):
+        raise ErroNegocio("CPF/CNPJ deve possuir 11 ou 14 dígitos.")
+
+    return cpf_cnpj_normalizado
+
+
+def normalizar_cpf_cnpj(cpf_cnpj: str | None) -> str | None:
+    return _normalizar_cpf_cnpj(cpf_cnpj)
 
 def _validar_telefone(db: Session, telefone: str, cliente_id: int | None = None) -> str:
     telefone_normalizado = _normalizar_telefone(telefone)
@@ -37,12 +57,17 @@ def criar_cliente(db: Session, dados: ClienteCreate) -> Cliente:
     telefone = _validar_telefone(db, dados.telefone)
     nome = _validar_nome(dados.nome)
 
-    cliente = Cliente(nome=nome, telefone=telefone)
+    cpf_cnpj = _normalizar_cpf_cnpj(dados.cpf_cnpj)
+
+    cliente = Cliente(
+        nome=nome,
+        telefone=telefone,
+        cpf_cnpj=cpf_cnpj,
+    )
     db.add(cliente)
     db.commit()
     db.refresh(cliente)
     return cliente
-
 
 def listar_clientes(db: Session, skip: int = 0, limit: int = 100) -> list[Cliente]:
     return db.query(Cliente).offset(skip).limit(limit).all()
@@ -81,6 +106,8 @@ def atualizar_cliente(
         valores["telefone"] = _validar_telefone(db, valores["telefone"], cliente_id)
     if "nome" in valores:
         valores["nome"] = _validar_nome(valores["nome"])
+    if "cpf_cnpj" in valores:
+        valores["cpf_cnpj"] = _normalizar_cpf_cnpj(valores["cpf_cnpj"])
 
     for campo, valor in valores.items():
         setattr(cliente, campo, valor)

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.models.pagamento import Pagamento
 from app.models.enums import FormaPagamento, StatusPagamento
+from app.models.cobranca_pix import CobrancaPix
 
 
 def obter_pagamento_por_pedido(
@@ -69,3 +70,25 @@ def atualizar_pagamento(
     db.refresh(pagamento)
 
     return pagamento
+
+def criar_cobranca_pix(
+    db: Session,
+    pagamento: Pagamento,
+    asaas_payment_id: str,
+    pix_payload: str,
+    pix_expira_em: datetime,
+    status_externo: str,
+) -> CobrancaPix:
+    cobranca = CobrancaPix(
+        pagamento_id=pagamento.id,
+        asaas_payment_id=asaas_payment_id,
+        pix_payload=pix_payload,
+        pix_expira_em=pix_expira_em,
+        status_externo=status_externo,
+    )
+
+    db.add(cobranca)
+    db.commit()
+    db.refresh(cobranca)
+
+    return cobranca
