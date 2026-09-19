@@ -1,17 +1,23 @@
 from sqlalchemy.orm import Session
 
+from app.models.enums import FormaPagamento
+from app.schemas import pedido
+from app.services import pedido_service
 from app.services import produto_service
 from app.services import carrinho_service
 from app.models.conversa_whatsapp import ConversaWhatsapp
 from app.services import conversa_whatsapp_service
 from app.services import cliente_service
 from app.schemas.cliente import ClienteCreate
+from app.services import endereco_service
 from app.services.conversa_whatsapp_estado import (
     ESTADO_CONFIRMAR_ENDERECO,
     ESTADO_CONFIRMAR_PEDIDO,
     ESTADO_IDENTIFICANDO_CLIENTE,
     ESTADO_INICIO,
     ESTADO_ESCOLHENDO_PRODUTOS,
+    ESTADO_PEDIDO_CRIADO,
+    ESTADO_ESCOLHER_PAGAMENTO,
 )
 
 def cliente_finalizou_produtos(mensagem: str) -> bool:
@@ -343,5 +349,136 @@ def processar_conversa(
             "✏️ Alterar, para modificar o pedido."
         )
 
+    if conversa.estado == ESTADO_CONFIRMAR_ENDERECO:
+        cliente = cliente_service.obter_cliente_por_telefone(
+            db,
+            conversa.telefone,
+        )
+
+        if cliente is None:
+            return (
+                "Não consegui localizar seu cadastro. "
+                "Vamos precisar refazer o cadastro."
+            )
+
+        enderecos = endereco_service.listar_enderecos_do_cliente(
+            db,
+            cliente.id,
+        )
+
+        if not enderecos:
+            return (
+                "Você ainda não possui um endereço de entrega cadastrado. 📍\n\n"
+                "Precisamos cadastrar um endereço antes de continuar."
+            )
+
+        mensagem_normalizada = mensagem.strip().lower()
+
+        # Cliente possui apenas um endereço
+        if len(enderecos) == 1:
+            endereco = enderecos[0]
+
+            if mensagem_normalizada in {"sim", "s", "confirmar"}:
+                conversa.endereco_id = endereco.id
+
+                conversa_whatsapp_service.alterar_estado(
+                    db,
+                    conversa,
+                    "ESCOLHENDO_PAGAMENTO",
+                )
+
+                return (
+                    "Endereço confirmado! 📍✅\n\n"
+                    "Agora escolha a forma de pagamento:\n\n"
+                    "1️⃣ Dinheiro\n"
+                    "2️⃣ PIX\n"
+                    "3️⃣ Cartão"
+                )
+
+            if mensagem_normalizada in {"não", "nao", "n"}:
+                return (
+                    "Tudo bem! 📍\n\n"
+                    "Precisamos cadastrar ou selecionar outro endereço "
+                    "antes de continuar."
+                )
+
+            return (
+                "Não entendi. 🤔\n\n"
+                "Responda SIM para confirmar o endereço "
+                "ou NÃO para informar que deseja outro."
+            )
+
+        # Cliente possui vários endereços
+        try:
+            indice = int(mensagem_normalizada)
+        except ValueError:
+            return (
+                "Por favor, informe o número do endereço "
+                "que deseja utilizar."
+            )
+
+        if indice < 1 or indice > len(enderecos):
+            return (
+                "Esse número de endereço não é válido. 🤔\n\n"
+                "Por favor, escolha um dos números apresentados."
+            )
+
+        endereco = enderecos[indice - 1]
+
+        conversa.endereco_id = endereco.id
+
+        conversa_whatsapp_service.alterar_estado(
+            db,
+            conversa,
+            "ESCOLHENDO_PAGAMENTO",
+        )
+
+        return (
+            "Endereço selecionado! 📍✅\n\n"
+            "Agora escolha a forma de pagamento:\n\n"
+            "1️⃣ Dinheiro\n"
+            "2️⃣ PIX\n"
+            "3️⃣ Cartão"
+        )
+    
+    if conversa.estado == ESTADO_ESCOLHER_PAGAMENTO:
+        mensagem_normalizada = mensagem.strip().lower()
+
+        formas_pagamento = {
+            "1": FormaPagamento.DINHEIRO,
+            "2": FormaPagamento.PIX,
+            "3": FormaPagamento.CARTAO,
+        }
+
+        forma_pagamento = formas_pagamento.get(mensagem_normalizada)
+
+        if forma_pagamento is None:
+            return (
+                "Não entendi a forma de pagamento. 🤔\n\n"
+                "Escolha uma das opções:\n\n"
+                "1️⃣ Dinheiro\n"
+                "2️⃣ PIX\n"
+                "3️⃣ Cartão"
+            )
+
+        conversa.forma_pagamento = forma_pagamento.value
+
+        pedido = pedido_service.criar_pedido_do_carrinho(
+            db,
+            conversa,
+        )
+
+        conversa_whatsapp_service.alterar_estado(
+            db,
+            conversa,
+            ESTADO_PEDIDO_CRIADO,
+)
+
+        return (
+            f"Pedido #{pedido.id} criado com sucesso! 🎉\n\n"
+            f"💰 Total: R$ {pedido.valor_total:.2f}\n"
+            f"💳 Pagamento: {forma_pagamento.value}"
+        )
+    
     return "Mensagem recebida."
 

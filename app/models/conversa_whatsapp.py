@@ -34,6 +34,11 @@ class ConversaWhatsapp(Base):
         nullable=True,
 )
 
+    forma_pagamento: Mapped[str | None] = mapped_column(
+    String(20),
+    nullable=True,
+)
+
     ultima_interacao: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,

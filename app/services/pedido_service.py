@@ -4,6 +4,10 @@ from decimal import Decimal
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
+from app.services import carrinho_service
+from app.models.conversa_whatsapp import ConversaWhatsapp
+from app.models.carrinho import Carrinho
+from app.models.item_carrinho import ItemCarrinho
 from app.models.cliente import Cliente
 from app.models.endereco import Endereco
 from app.models.enums import FormaPagamento, StatusPagamento, StatusPedido
@@ -14,6 +18,7 @@ from app.models.pedido import Pedido
 from app.models.produto import Produto
 from app.schemas.pedido import PedidoCreate
 from app.services.exceptions import EntidadeNaoEncontrada, ErroNegocio
+from app.services import cliente_service
 
 
 def _validar_cliente(db: Session, cliente_id: int) -> Cliente:
@@ -129,6 +134,138 @@ def criar_pedido(db: Session, dados: PedidoCreate) -> Pedido:
     db.refresh(pedido)
     return pedido
 
+def criar_pedido_do_carrinho(
+    db: Session,
+    conversa: ConversaWhatsapp,
+) -> Pedido:
+    carrinho = (
+        db.query(Carrinho)
+        .filter(Carrinho.conversa_id == conversa.id)
+        .first()
+    )
+
+    if carrinho is None:
+        raise ErroNegocio("A conversa não possui um carrinho.")
+
+    itens_carrinho = (
+        db.query(ItemCarrinho)
+        .filter(ItemCarrinho.carrinho_id == carrinho.id)
+        .all()
+    )
+
+    if not itens_carrinho:
+        raise ErroNegocio("O carrinho está vazio.")
+
+    cliente = cliente_service.obter_cliente_por_telefone(
+        db,
+        conversa.telefone,
+    )
+
+    if cliente is None:
+        raise EntidadeNaoEncontrada(
+            "Não foi possível localizar o cliente da conversa."
+        )
+
+    if conversa.endereco_id is None:
+        raise ErroNegocio(
+            "A conversa ainda não possui um endereço selecionado."
+        )
+
+    endereco = _validar_endereco(
+        db,
+        conversa.endereco_id,
+        cliente.id,
+    )
+
+    itens_pedido: list[ItemPedido] = []
+    valor_itens = Decimal("0")
+
+    for item_carrinho in itens_carrinho:
+        produto = db.get(Produto, item_carrinho.produto_id)
+
+        if produto is None:
+            raise EntidadeNaoEncontrada(
+                f"Produto informado (id={item_carrinho.produto_id}) não existe."
+            )
+
+        if not produto.ativo:
+            raise ErroNegocio(
+                f"O produto '{produto.nome}' está inativo."
+            )
+
+        if produto.quantidade_estoque < item_carrinho.quantidade:
+            raise ErroNegocio(
+                f"Estoque insuficiente para o produto '{produto.nome}'. "
+                f"Disponível: {produto.quantidade_estoque}, "
+                f"solicitado: {item_carrinho.quantidade}."
+            )
+
+        preco_unitario = item_carrinho.preco_unitario
+        subtotal = preco_unitario * item_carrinho.quantidade
+        valor_itens += subtotal
+
+        itens_pedido.append(
+            ItemPedido(
+                produto_id=produto.id,
+                quantidade=item_carrinho.quantidade,
+                preco_unitario=preco_unitario,
+                subtotal=subtotal,
+            )
+        )
+    bairro = endereco.bairro
+    cidade = bairro.cidade
+
+    taxa_entrega_aplicada = bairro.valor_taxa_entrega
+    valor_total = valor_itens + taxa_entrega_aplicada
+    pedido = Pedido(
+        cliente_id=cliente.id,
+        endereco_id=endereco.id,
+        cep_entrega=endereco.cep,
+        logradouro_entrega=endereco.logradouro,
+        numero_entrega=endereco.numero,
+        complemento_entrega=endereco.complemento,
+        ponto_referencia_entrega=endereco.ponto_referencia,
+        bairro_entrega_nome=bairro.nome,
+        cidade_entrega_nome=cidade.nome,
+        taxa_entrega_aplicada=taxa_entrega_aplicada,
+        status=StatusPedido.NOVO,
+        valor_total=valor_total,
+    )
+    pedido.itens = itens_pedido
+
+    pedido.pagamento = Pagamento(
+        forma_pagamento=FormaPagamento(conversa.forma_pagamento),
+        status_pagamento=StatusPagamento.PENDENTE,
+        valor=valor_total,
+    )
+    pedido.historico_status = [
+        HistoricoStatusPedido(
+            status_anterior=None,
+            status_novo=StatusPedido.NOVO,
+        )
+    ]
+    db.add(pedido)
+    db.flush()
+
+    for item_carrinho in itens_carrinho:
+        produto = db.get(Produto, item_carrinho.produto_id)
+
+        if produto is None:
+            raise EntidadeNaoEncontrada(
+                f"Produto informado (id={item_carrinho.produto_id}) não existe."
+            )
+
+        produto.quantidade_estoque -= item_carrinho.quantidade
+
+    conversa.pedido_id = pedido.id
+
+    for item_carrinho in itens_carrinho:
+        db.delete(item_carrinho)
+
+    db.commit()
+    db.refresh(pedido)
+
+    return pedido
 
 def listar_pedidos(
     db: Session,
